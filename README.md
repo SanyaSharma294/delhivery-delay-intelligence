@@ -17,4 +17,23 @@
    - `hub_tier`: **+0.3240**
 5. **Declared Value Log-Transformation Justification**: Prior to transformation, raw `declared_value_inr` is heavily right-skewed with a mean of **INR 1,533.05** substantially exceeding the median of **INR 1,121.50**. Following natural log transformation, `log_declared_value` normalizes to a mean of **7.0280** and median of **7.0220**, preventing extreme parcel valuations from distorting downstream linear and distance-based estimators.
 
+## Part B: Delivery-Hours Regression Findings
+
+1. **Baseline Evaluation**: The mean baseline predictor yields an $R^2$ of **-0.0210** on the validation set, confirming that predicting the historical training mean provides zero explanatory signal and performs slightly worse than a horizontal line through the validation mean.
+2. **Model Validation Performance**: 
+   - **Linear Regression** and **Gradient Boosting** achieved the top validation performance with an identical $R^2$ of **0.9310** (RMSE of **4.89 hours** and **4.91 hours**, respectively).
+   - **Random Forest** achieved an $R^2$ of **0.9140** (RMSE of **5.49 hours**).
+   - **Tuned Decision Tree (max_depth=6)** achieved an $R^2$ of **0.8870** (RMSE of **6.28 hours**).
+3. **Tree-Depth Diagnostic (Bias vs. Variance)**:
+   - **High Bias (Underfitting)**: At `max_depth=1`, the model severely underfits with high training RMSE (**9.75 hours**) and validation RMSE (**10.25 hours**), with a negligible generalization gap of **0.50 hours**.
+   - **High Variance (Overfitting)**: At unlimited depth (`None`), the model achieves a training RMSE of **0.00 hours** but validation RMSE balloons to **7.79 hours**, yielding a large generalization gap of **7.79 hours**.
+   - **Optimal Tradeoff**: `max_depth=6` achieves the lowest validation RMSE of **6.28 hours**.
+4. **Learning Rate Diagnostic**:
+   - `learning_rate=0.01` exhibits severe underfitting ($R^2 = 0.7130$, RMSE = 10.02 hours) due to insufficient step size across 100 trees.
+   - `learning_rate=0.10` hits the optimal balance ($R^2 = 0.9310$, RMSE = 4.91 hours).
+   - `learning_rate=1.00` degrades significantly ($R^2 = 0.8440$, RMSE = 7.39 hours) as aggressive step updates overshoot the loss minimum.
+5. **Cross-Validation & Shipping Decision**:
+   - 5-fold cross-validation on the combined 1,020 training and validation rows confirms consistent generalization: **Gradient Boosting** yields a mean $R^2$ of **0.9350** (std: **0.0080**), slightly outpacing **Linear Regression** at a mean $R^2$ of **0.9260** (std: **0.0110**).
+   - On the held-out test split, the final model achieved an $R^2$ of **0.9490** and an MAE of **3.17 hours**. 
+   - **Production Recommendation**: Although Linear Regression is slightly faster to infer, **Gradient Boosting Regressor** is recommended for production because it inherently captures nonlinear operational interactions (such as rain and distance thresholds) with superior cross-validated stability.
 
